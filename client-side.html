@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Side Stuff</title>
+    <style>
+
+        /* style definitions go here */
+        #coordinate {
+            position: absolute;
+            top:10px;
+            left:75%;
+            border: 1px solid #444;
+            padding:2px 4px;
+            border-radius: 4px;
+            background-color: gold;
+            font: caption;
+            filter: drop-shadow(1px 1px 2px gray);
+            font-family: monospace;
+        }
+
+        #outputarea {
+            position: absolute;
+            right: 32px;
+            background-color: aliceblue;
+            border: 1px dashed gray;
+            min-width: 300px;
+            min-height: 100px;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        button {
+            border: 1px outset gray;
+            border-radius: 4px;
+            background-color: white;
+            padding: 8px;
+            cursor: pointer;
+            margin:0 4px
+        }
+
+        button:active {
+            border-style: inset;
+            filter: invert(1);
+        }
+
+        .dot {
+            position: absolute;
+            display: block;
+            background-color:rgb(157, 216, 112);
+            /* will be more specifically defined (and thus overridden) elsewhere */
+            border-radius: 50%;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            cursor: pointer;
+            outline: 0px solid black;
+            outline-offset: 0;
+            outline-style: none;
+            filter: drop-shadow(0 0 2px #222);
+            opacity: .8;
+            --size: 12px;
+            width: var(--size);
+            height: var(--size);
+            margin-left: -9px;
+            margin-top: -9px;
+            border: 1px solid black;
+            box-sizing: border-box;
+            transition: outline-offset .5s;
+            opacity: .65;
+        }
+        .something {
+            color : hotpink;
+        }
+    </style>
+    <script>
+
+        /* script code goes here */
+        onmousemove = (event) => { 
+            let offset = {
+                x: 4,
+                y: 18,
+            };
+            let node = document.getElementById("coordinate");
+            node.innerHTML = event.clientX + ", " + event.clientY + " over " + event.target.localName;
+            node.style.left = event.clientX + offset.x + "px";
+            node.style.top = event.clientY + offset.y + "px";
+        }
+        function CreateHTML() {
+            let node = document.createElement("DIV");
+            node.classList.add("example");
+            node.append("Dit is HTML gegenereerd door JS functie");
+            document.getElementById("outputarea").append(node);
+        }
+        let somethingcounter = 0;
+        class SomeThing {
+            constructor() {
+                this.Create(++somethingcounter);
+            }
+            //---------------------------------------------
+            Create(label) {
+                let node = document.createElement("DIV");
+                node.classList.add("something");
+                node.append(label);
+                document.getElementById("outputarea").append(node);
+            }
+        }
+        class Dot {
+            constructor(x, y, label) {
+                this.x = parseInt(x);
+                this.y = parseInt(y);
+                this.label = label;
+                this.UI = this.Create();
+            }
+            //-------------------------------------------------
+            Create() {
+                let dot = document.createElement("div");
+                // apply the .dot css class (position:absolute in that class is crucial!)
+                dot.classList.add("dot");
+                
+                // position the dot at this.x, this.y from the left-top corner
+                dot.style.left = this.x + "px";
+                dot.style.top = this.y + "px";
+
+                // when cursor enters the dot, a mouseenter event is fired: react to that event
+                dot.onmouseenter = (event) => {
+                    this.LightsOn(event);
+                };
+
+                // when cursor leaves the dot, a mouseleave event is fired: react to that event
+                dot.onmouseleave = (event) => {
+                    this.LightsOff(event);
+                };
+
+                // show the label when hovering the dot
+                dot.onmouseover = (event) => {
+                    new ToolTip(event, this.label); // + " @ " + this.x + ", " + this.y);
+                };
+
+                // dot onmousedown
+                dot.onmousedown = (event) => {
+                    this.StartDrag(event);
+                };
+                return dot;
+            }
+            //-------------------------------------------------
+            GetInterface() {
+                return this.UI;
+            } //-------------------------------------------------
+            LightsOn(event) {
+                this.UI.style.backgroundColor = "gold";
+                this.UI.style.scale = 2;
+            }
+            //-------------------------------------------------
+            LightsOff(event) {
+                this.UI.style.backgroundColor = ""; // this effectively applies the default styling
+                this.UI.style.scale = 1;
+            }
+            //-------------------------------------------------
+            StartDrag(event) {
+                this.UI.onmousemove = (event) => {
+                    this.Drag(event);
+                };
+                this.UI.style.cursor = "grab";
+            }
+            //-------------------------------------------------
+            Drag(event) {
+                // set the event handler that stops dragging when user releases the mouse button (onmouseup event is triggered)
+                this.UI.onmouseup = (event) => {
+                    this.EndDrag(event);
+                };
+                if (event.buttons == 1) {
+                    // move the marker to the location where the event is happening
+                    this.x = window.scrollX + event.clientX - this.UI.parentNode.offsetLeft - this.UI.clientWidth / 4;
+                    this.y = window.scrollY + event.clientY - this.UI.parentNode.offsetTop - this.UI.clientHeight / 4;
+
+                    // update this marker's location
+                    this.UI.style.left = this.x + "px";
+                    this.UI.style.top = this.y + "px";
+                    this.UI.style.cursor = "crosshair";
+                    event.stopPropagation();
+                }
+            }
+            //-------------------------------------------------
+            EndDrag(event) {
+                this.UI.style.cursor = "pointer";
+                // stop the drag handling on the parentnode
+                this.UI.onmousemove = null;
+            }
+            //-------------------------------------------------
+        }  
+        function RandomLocatie(event) {
+            let parent = document.getElementById("outputarea");
+            let w = parent.clientWidth;
+            let h = parent.clientHeight;
+            let x = Math.random() * w;
+            let y = Math.random() * h;
+            let label = "Drag Me";
+            let dot = new Dot(x, y, label);
+            parent.append(dot.GetInterface());
+        }
+    </script>
+</head>
+<body>
+    
+    <button onclick="CreateHTML()">CreateHTML()</button>
+    <button onclick="new SomeThing()">new SomeThing()</button>
+    <div id="outputarea"><code>(id="outputarea")</code></div>
+    <button onclick="RandomLocatie(event)">Creëer een Dot object op een RandomLocatie()</button>
+    <div id="coordinate">x, y</div>
+</body>
+</html>
